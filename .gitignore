@@ -1,0 +1,9 @@
+.lake/
+tools/solve
+tools/candidates/
+__pycache__/
+*.pyc
+*.bak
+.DS_Store
+.claude/
+promo/

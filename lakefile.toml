@@ -1,0 +1,5 @@
+name = "heartgrid"
+defaultTargets = ["HeartGrid"]
+
+[[lean_lib]]
+name = "HeartGrid"

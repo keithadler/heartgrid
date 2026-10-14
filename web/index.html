@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HeartGrid</title>
+<style>
+:root{--bg:#14121f;--panel:#1e1b2e;--ink:#f1ecff;--dim:#9a93b8;--acc:#ff5d8f;--ok:#5ee0a0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 ui-rounded,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:14px}
+h1{margin:2px 0 0;font-size:26px;letter-spacing:.04em}h1 span{color:var(--acc)}
+#sub{color:var(--dim);margin-bottom:10px;font-size:13px;text-align:center}
+#wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;width:100%;max-width:1500px}
+#board{background:var(--panel);border-radius:12px;padding:10px;flex:1 1 560px;min-width:0;display:flex;justify-content:center}
+canvas{display:block;border-radius:6px}
+#side{width:300px;background:var(--panel);border-radius:12px;padding:14px;flex:0 0 300px}
+#side h2{margin:0 0 2px;font-size:18px}
+.row{display:flex;justify-content:space-between;margin:3px 0;color:var(--dim)}.row b{color:var(--ink)}
+.proof{margin:10px 0;padding:10px;border-radius:8px;background:#102a1f;border:1px solid #1f5a3f;color:var(--ok);font-size:13px}
+.proof code{color:#b7f5d6;font-size:12px}.proof small{color:#7fcfa5}
+button{font:inherit;color:var(--ink);background:#2e2a47;border:0;border-radius:8px;padding:7px 11px;cursor:pointer}
+button:hover{background:#3b3660}button:disabled{opacity:.4;cursor:default}
+#btns{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+#map{display:block;margin:10px auto 0;background:#17142a;border-radius:8px}
+#msg{min-height:22px;margin-top:6px;color:var(--acc);font-weight:700}
+#pad{display:none;grid-template-columns:repeat(3,56px);gap:6px;margin-top:10px;justify-content:center}
+#pad button{height:52px;font-size:22px}
+@media (pointer:coarse){#pad{display:grid}}
+#keys{color:var(--dim);font-size:12px;margin-top:8px}
+</style></head><body>
+<h1>Heart<span>Grid</span></h1>
+<div id="sub">Collect every heart, push the emeralds, open the door – and step through to the next room. Every room is proven solvable in Lean 4.</div>
+<div id="wrap">
+  <div id="board"><canvas id="cv"></canvas></div>
+  <div id="side">
+    <h2 id="title"></h2>
+    <div class="row"><span>Moves</span><b id="moves">0</b></div>
+    <div class="row"><span>Hearts left</span><b id="hearts">0</b></div>
+    <div class="row"><span>Best</span><b id="best">–</b></div>
+    <div class="proof" id="proof"></div>
+    <div id="msg"></div>
+    <div id="btns"><button id="wait">Wait (Space)</button><button id="undo">Undo (Z)</button><button id="reset">Restart (R)</button><button id="hint">Show proof</button></div>
+    <div id="pad"><span></span><button data-d="U">▲</button><span></span><button data-d="L">◀</button><button data-d="D">▼</button><button data-d="R">▶</button></div>
+    <canvas id="map" width="268" height="150"></canvas>
+    <div id="keys">Arrows / WASD move · Space wait · Z undo · R restart<br>Blue = patroller, purple = hunter (sees along rows &amp; columns).</div>
+  </div>
+</div>
+<script src="levels.js"></script><script src="engine.js"></script><script src="render.js"></script><script src="minimap.js"></script><script src="game.js"></script>
+</body></html>
