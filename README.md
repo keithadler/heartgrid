@@ -1,5 +1,7 @@
 # HeartGrid
 
+![HeartGrid: every level, proven](docs/hero.png)
+
 A Lolo-style puzzle game where **every room is a theorem**.
 
 Collect every heart, push emerald blocks (into water, to bridge it), dodge patrolling and hunting ghosts,
@@ -31,12 +33,16 @@ Lean is a serious proof assistant, used to verify mathematics and software. This
 use of it: a game whose *difficulty curve* is a theorem rather than a hunch. Because the rules are written
 down precisely in Lean, a claim like "this room needs exactly 61 moves" can be checked by the machine.
 
+![Minimum moves per room, 15 to 114, each proven](docs/difficulty.png)
+
 ## What is proved, and what you are trusting
 | Claim | How it is checked |
 | --- | --- |
 | Each room can be solved (`L*_solves`) | The Lean kernel evaluates the rules along a given move list. Standard axioms only. |
 | No shorter solution exists (`L*_min`) | `no_short_solution` is proved once, for **every** room: if a breadth-first search finds no win within *k* moves, none exists. Room 1 runs the search in the kernel; rooms 2-12 run it as compiled code (`native_decide`), which additionally trusts the Lean compiler. |
 | The rooms get strictly harder (`curriculum`) | The twelve minima above, compared by `decide`. |
+
+![The Lean source: room 7's minimum, the search's soundness theorem and the curriculum theorem](docs/proof.png)
 
 **The gap:** the game you play is JavaScript, not Lean. `web/engine.js` is a separate implementation of the
 rules in `HeartGrid/Rules.lean`. Nothing proves the two identical. They are held together by tests:
