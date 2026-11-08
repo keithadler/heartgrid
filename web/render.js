@@ -194,7 +194,29 @@
     }
     drawHero(g, view, pr, pc);
     drawEffects(g, view, now);
+    if (view.axes) drawAxes(g, L, view.hover);
     if (view.banner) drawBanner(g, W, H, view.banner);
+  }
+
+  /**
+   * Optional coordinate overlay: thin grid lines, x along the bottom edge and y up the left edge,
+   * with the origin (0, 0) in the bottom-left cell.  `hover` = [r, c] highlights one cell.
+   */
+  function drawAxes(g, L, hover) {
+    g.save();
+    g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1;
+    g.beginPath();
+    for (let c = 0; c <= L.w; c++) { g.moveTo(c * TILE + .5, 0); g.lineTo(c * TILE + .5, L.h * TILE); }
+    for (let r = 0; r <= L.h; r++) { g.moveTo(0, r * TILE + .5); g.lineTo(L.w * TILE, r * TILE + .5); }
+    g.stroke();
+    if (hover) {
+      g.fillStyle = 'rgba(255,225,74,.22)'; g.fillRect(hover[1] * TILE, hover[0] * TILE, TILE, TILE);
+    }
+    g.font = 'bold 12px ui-rounded, system-ui, sans-serif'; g.fillStyle = '#ffe14a';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let c = 0; c < L.w; c++) g.fillText(String(c), c * TILE + TILE / 2, L.h * TILE - 9);
+    for (let r = 0; r < L.h; r++) g.fillText(String(L.h - 1 - r), 10, r * TILE + TILE / 2);
+    g.restore();
   }
 
   window.Render = { TILE, drawRoom };

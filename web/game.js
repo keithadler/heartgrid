@@ -33,6 +33,7 @@
     effects: [],         // floating hearts / splashes
     message: '',
     replay: null,        // timer id while the proof replay runs
+    axes: false, hover: null, log: [],
     transition: null,    // { t0, dir, image } while sliding between rooms
   };
   let pixelRatio = 1;    // canvas pixels per logical unit
@@ -44,7 +45,7 @@
     clearTimeout(game.replay); game.replay = null;
     Object.assign(game, {
       index, room: Engine.parse(lv.rows), history: [], moves: 0,
-      won: false, dead: false, message: '', anim: null, effects: [],
+      won: false, dead: false, message: '', anim: null, effects: [], log: [],
     });
     game.state = Engine.clone(game.room.start);
     game.transition = from ? { t0: performance.now(), dir: from.dir, image: from.image } : null;
@@ -65,12 +66,32 @@
     canvas.style.width = Math.round(w * zoom) + 'px'; canvas.style.height = Math.round(h * zoom) + 'px';
   }
 
+  const ARROW = { U: '↑', D: '↓', L: '←', R: '→', S: '·' };
+  const ALL_MINIMA = LEVELS.map(l => l.opt);
+
+  /** Table of every room's proven minimum next to the player's best, plus the chain a < b < c ... */
+  function renderTable() {
+    $('seq').tBodies[0].innerHTML = LEVELS.map((l, i) => {
+      const mine = best[l.n];
+      return `<tr${i === game.index ? ' class="cur"' : ''}><td>${l.n}</td><td>${l.opt}</td><td>${mine || '–'}</td>` +
+        `<td>${mine ? '+' + (mine - l.opt) : ''}</td></tr>`;
+    }).join('');
+    $('chain').textContent = ALL_MINIMA.join(' < ');
+  }
+
   function refresh() {
     $('moves').textContent = game.moves;
     $('hearts').textContent = game.state.hearts.size;
     const fewest = best[LEVELS[game.index].n];
     $('best').textContent = fewest ? `${fewest} (optimal ${LEVELS[game.index].opt})` : '–';
     $('msg').textContent = game.message;
+    const lv = LEVELS[game.index], h = game.room.L.h, [pr, pc] = game.state.player;
+    $('pos').textContent = `(${pc}, ${h - 1 - pr})`;
+    $('opt').textContent = lv.opt;
+    $('eff').textContent = game.won ? `${lv.opt}/${game.moves} = ${Math.round(100 * lv.opt / game.moves)}%` : '–';
+    $('log').textContent = game.log.map(a => ARROW[a]).join(' ') || '–';
+    $('log').scrollTop = 1e6;
+    renderTable();
     $('undo').disabled = !game.history.length || !!game.replay;
     Minimap.draw(mapCanvas, LEVELS, game.index, n => !!best[n]);
   }
@@ -85,7 +106,7 @@
     if (!result.moved) return false;
 
     const before = game.state;
-    game.history.push(before); game.state = result.state; game.moves++; game.message = '';
+    game.history.push(before); game.state = result.state; game.moves++; game.log.push(action); game.message = '';
     if (action !== 'S') game.facing = action;
     game.anim = { t0: performance.now(), d: action, waited: result.waited, pushed: result.pushed,
                   prevBlocks: before.blocks, prevEnemies: before.enemies, prevPlayer: before.player };
@@ -120,7 +141,7 @@
 
   function undo() {
     if (!game.history.length || game.replay || game.transition) return;
-    game.state = game.history.pop(); game.moves--; game.won = game.dead = false; game.anim = null; game.message = '';
+    game.state = game.history.pop(); game.moves--; game.log.pop(); game.won = game.dead = false; game.anim = null; game.message = '';
     refresh();
   }
   const restart = () => { if (!game.transition) loadRoom(game.index); };
@@ -144,9 +165,19 @@
   addEventListener('keydown', e => {
     if (KEYS[e.key]) { e.preventDefault(); if (!game.replay) act(KEYS[e.key]); }
     else if (e.key === 'z' || e.key === 'Z') undo();
+    else if (e.key === 'g' || e.key === 'G') toggleAxes();
     else if (e.key === 'r' || e.key === 'R') restart();
     else if (e.key === 'Enter' && game.won) nextRoom();
   });
+  function toggleAxes() { game.axes = !game.axes; $('axes').setAttribute('aria-pressed', game.axes); }
+  $('axes').onclick = toggleAxes;
+  canvas.onmousemove = e => {            // show the (x, y) of the cell under the pointer
+    const { L } = game.room, b = canvas.getBoundingClientRect();
+    const c = Math.floor((e.clientX - b.left) / b.width * L.w), r = Math.floor((e.clientY - b.top) / b.height * L.h);
+    game.hover = r >= 0 && c >= 0 && r < L.h && c < L.w ? [r, c] : null;
+    $('pos').textContent = game.hover ? `(${c}, ${L.h - 1 - r})  ← pointer` : '';
+  };
+  canvas.onmouseleave = () => { game.hover = null; refresh(); };
   addEventListener('resize', () => { fitCanvas(); });
   $('undo').onclick = undo; $('reset').onclick = restart; $('hint').onclick = showProof;
   $('wait').onclick = () => { if (!game.replay) act('S'); };
@@ -168,7 +199,7 @@
     game.effects = game.effects.filter(f => now - f.t0 < 450);
     g.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
     Render.drawRoom(g, { room: game.room, state: game.state, anim: game.anim, effects: game.effects,
-                         facing: game.facing, dead: game.dead, banner: currentBanner() }, now);
+                         facing: game.facing, axes: game.axes, hover: game.hover, dead: game.dead, banner: currentBanner() }, now);
     if (game.transition) drawTransition(now);
     requestAnimationFrame(frame);
   }

@@ -24,6 +24,15 @@ button:hover{background:#3b3660}button:disabled{opacity:.4;cursor:default}
 #pad{display:none;grid-template-columns:repeat(3,56px);gap:6px;margin-top:10px;justify-content:center}
 #pad button{height:52px;font-size:22px}
 @media (pointer:coarse){#pad{display:grid}}
+.log{margin-top:8px;color:var(--dim);font-size:12px}
+#log{font:13px/1.5 ui-monospace,monospace;color:var(--ink);max-height:54px;overflow:auto;word-break:break-all}
+#seq{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px;color:var(--ink)}
+#seq caption{text-align:left;color:var(--dim);padding-bottom:3px}
+#seq th,#seq td{text-align:right;padding:1px 4px}#seq th{color:var(--dim);font-weight:400}
+#seq tr.cur td{color:var(--acc);font-weight:700}
+#chain{font-size:11px;color:var(--dim);margin-top:4px;word-spacing:2px}
+#sheet{display:inline-block;margin-top:8px;color:var(--dim);font-size:12px}
+#axes[aria-pressed=true]{background:#5b4f86}
 #keys{color:var(--dim);font-size:12px;margin-top:8px}
 </style></head><body>
 <h1>Heart<span>Grid</span></h1>
@@ -35,12 +44,19 @@ button:hover{background:#3b3660}button:disabled{opacity:.4;cursor:default}
     <div class="row"><span>Moves</span><b id="moves">0</b></div>
     <div class="row"><span>Hearts left</span><b id="hearts">0</b></div>
     <div class="row"><span>Best</span><b id="best">–</b></div>
+    <div class="row"><span>Position (x, y)</span><b id="pos">–</b></div>
+    <div class="row"><span>Efficiency</span><b id="eff">–</b></div>
+    <div class="row"><span>Shortest possible</span><b id="opt">–</b></div>
     <div class="proof" id="proof"></div>
     <div id="msg"></div>
-    <div id="btns"><button id="wait">Wait (Space)</button><button id="undo">Undo (Z)</button><button id="reset">Restart (R)</button><button id="hint">Show proof</button></div>
+    <div id="btns"><button id="wait">Wait (Space)</button><button id="undo">Undo (Z)</button><button id="reset">Restart (R)</button><button id="hint">Show proof</button><button id="axes" aria-pressed="false">Grid (G)</button></div>
     <div id="pad"><span></span><button data-d="U">▲</button><span></span><button data-d="L">◀</button><button data-d="D">▼</button><button data-d="R">▶</button></div>
+    <div class="log"><span>Move log</span><div id="log"></div></div>
+    <table id="seq"><caption>Shortest solutions so far</caption><thead><tr><th>Room</th><th>Min</th><th>Yours</th><th>Δ</th></tr></thead><tbody></tbody></table>
+    <div id="chain"></div>
+    <a id="sheet" href="worksheet.html" target="_blank">Printable grids (x, y)</a>
     <canvas id="map" width="268" height="150"></canvas>
-    <div id="keys">Arrows / WASD move · Space wait · Z undo · R restart<br>Blue = patroller, purple = hunter (sees along rows &amp; columns).</div>
+    <div id="keys">Arrows / WASD move · Space wait · Z undo · R restart · G grid<br>Blue = patroller, purple = hunter (sees along rows &amp; columns).</div>
   </div>
 </div>
 <script src="levels.js"></script><script src="engine.js"></script><script src="render.js"></script><script src="minimap.js"></script><script src="game.js"></script>
