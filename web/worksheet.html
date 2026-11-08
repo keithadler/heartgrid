@@ -1,8 +1,14 @@
 <!doctype html>
+<!--
+  Printable grids for every room, plus a blank grid and an answer key.  Reads the same rooms (levels.js) as the
+  game, so it can never drift out of date.  Coordinates match the game: origin (0, 0) bottom-left, x right, y up.
+  Source: https://github.com/keithadler/heartgrid
+-->
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HeartGrid – printable grids</title>
 <style>
+/* Plain black-on-white styling so it prints well; the key is hidden until toggled. */
 body{font:14px/1.4 system-ui,sans-serif;color:#111;margin:24px auto;max-width:820px;padding:0 16px}
 h1{margin:0 0 4px}.sub{color:#555;margin-bottom:16px}
 section{break-inside:avoid;margin:0 0 28px;border-top:2px solid #111;padding-top:8px}
@@ -15,6 +21,7 @@ button{font:inherit;padding:6px 12px;margin:0 6px 12px 0}
 .key{display:none;font-size:13px;color:#222;background:#f1f1f1;padding:6px 8px;margin-top:8px}
 body.showkey .key{display:block}
 .blank{margin:0 0 28px}
+/* When printing, hide the buttons and the links in the intro line, and drop the page margin. */
 @media print{button,.sub a{display:none}body{margin:0}}
 </style></head><body>
 <h1>HeartGrid – grids with coordinates</h1>
@@ -24,26 +31,37 @@ body.showkey .key{display:block}
 <section class="blank"><h2>Blank grid: plot your own points</h2><canvas id="blank"></canvas>
 <div class="sub">Plot and label A(2, 3), B(7, 1), C(10, 6). Then join them and find each side's length by counting steps along rows and columns.</div></section>
 <div id="out"></div>
+<!-- levels.js defines LEVELS; engine.js is loaded too but only needed if this page grows features that use it. -->
 <script src="levels.js"></script><script src="engine.js"></script>
 <script>
+// CELL = size of one square in pixels.  `out` is where the room sections are added.
 const CELL = 30, out = document.getElementById('out');
-(function blank() {                          // empty grid with axes, lines labelled so a point sits where two lines cross
+// The blank plotting grid at the top.  Unlike the room grids, its numbers sit ON the grid lines, because a point
+// is plotted where two lines cross.  m is the margin left for the axis numbers.
+(function blank() {
   const w = 11, h = 9, m = 24, cv = document.getElementById('blank'); cv.width = w * CELL + 2 * m; cv.height = h * CELL + 2 * m;
   const g = cv.getContext('2d'); g.font = '12px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  // Grid lines: w + 1 vertical and h + 1 horizontal lines (a grid of w by h squares has one more line than squares).
   g.strokeStyle = '#bbb'; g.beginPath();
   for (let c = 0; c <= w; c++) { g.moveTo(m + c * CELL + .5, m); g.lineTo(m + c * CELL + .5, m + h * CELL); }
   for (let r = 0; r <= h; r++) { g.moveTo(m, m + r * CELL + .5); g.lineTo(m + w * CELL, m + r * CELL + .5); }
+  // Number the lines: x = 0..w along the bottom, y = 0..h up the left (y = 0 is the bottom line).
   g.stroke(); g.fillStyle = '#000';
   for (let c = 0; c <= w; c++) g.fillText(c, m + c * CELL, m + h * CELL + 12);
   for (let y = 0; y <= h; y++) g.fillText(y, 10, m + (h - y) * CELL);
 })();
+// Fill colour for each kind of cell: dark grey wall, white floor, pale blue water.  Grey (not colour) means it still
+// reads when printed in black and white; everything else is shown with a symbol.
 const sym = { '#': '#777', '.': '#fff', '~': '#d9e6f5' };
+// One section per room: a title, the grid, three answer lines and the (hidden) key.
 LEVELS.forEach(lv => {
+  // rows = the room as text, one string per row (see engine.js for what each character means).
   const rows = lv.rows, h = rows.length, w = rows[0].length, m = 22;
   const sec = document.createElement('section');
   sec.innerHTML = `<h2>Room ${lv.n}: ${lv.name}</h2>`;
   const cv = document.createElement('canvas'); cv.width = w * CELL + m; cv.height = h * CELL + m;
   const g = cv.getContext('2d'); g.font = '12px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  // Draw every cell: fill, outline, then a symbol for hearts, blocks, the hero, the door and ghosts.
   rows.forEach((row, r) => [...row].forEach((ch, c) => {
     const x = m + c * CELL, y = r * CELL;
     g.fillStyle = sym[ch] || '#fff'; g.fillRect(x, y, CELL, CELL);
@@ -53,6 +71,7 @@ LEVELS.forEach(lv => {
                  ({ '~': '≈' })[ch] || '';
     g.fillText(mark, x + CELL / 2, y + CELL / 2);
   }));
+  // Axis numbers: x under each column, y beside each row.  Rows run top to bottom in the text, so y = h - 1 - r.
   g.fillStyle = '#000';
   for (let c = 0; c < w; c++) g.fillText(c, m + c * CELL + CELL / 2, h * CELL + 11);
   for (let r = 0; r < h; r++) g.fillText(h - 1 - r, 10, r * CELL + CELL / 2);
@@ -61,6 +80,7 @@ LEVELS.forEach(lv => {
     <div><label>Hero starts at (x, y)</label><span></span></div>
     <div><label>Hearts (list each point)</label><span></span></div>
     <div><label>Fewest moves you found</label><span></span></div></div>`);
+  // Key: find every cell holding character ch and list it as (x, y), flipping rows so y counts up from the bottom.
   const pts = (ch, mark) => rows.flatMap((row, r) => [...row].map((x, c) => x === ch ? `(${c}, ${h - 1 - r})` : null)).filter(Boolean);
   const start = pts('P'), hearts = pts('H'), door = pts('E');
   sec.insertAdjacentHTML('beforeend', `<div class="key">Key – start ${start.join(', ')} · hearts ${hearts.join(', ')} · door ${door.join(', ') || 'in the arch wall'} · shortest solution ${lv.opt} moves</div>`);

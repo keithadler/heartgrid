@@ -1,38 +1,59 @@
 <!doctype html>
+<!--
+  HeartGrid - the page.  Layout and styling live here; the behaviour is in the scripts at the bottom:
+    levels.js   the twelve rooms (generated: do not edit by hand)     engine.js   the rules
+    render.js   draws a room on the canvas                            minimap.js  the little room map
+    game.js     the controller: keyboard, panel, animation loop
+  Source: https://github.com/keithadler/heartgrid
+-->
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HeartGrid</title>
 <style>
+/* Colours as named variables, so the whole look can change in one place. --dim is the softer text colour. */
 :root{--bg:#14121f;--panel:#1e1b2e;--ink:#f1ecff;--dim:#c9c3e6;--acc:#ff5d8f;--ok:#5ee0a0}
-*{box-sizing:border-box}
+*{box-sizing:border-box}   /* widths include padding, which makes layout sums simpler */
+/* Page: a dark column, centred, with the title on top and the board and side panel below. */
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 ui-rounded,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:14px}
 h1{margin:2px 0 0;font-size:26px;letter-spacing:.04em}h1 span{color:var(--acc)}
 #sub{color:var(--dim);margin-bottom:10px;font-size:14px;text-align:center}
+#intro{max-width:760px;margin:0 auto 12px;font-size:14px;color:var(--dim);background:var(--panel);border-radius:10px;padding:8px 14px}#intro p{margin:6px 0}#intro a,footer a{color:#ffb3cb}
+/* The board and side panel sit side by side, and stack on narrow screens (flex-wrap). */
 #wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start;width:100%;max-width:1500px}
 #board{background:var(--panel);border-radius:12px;padding:10px;flex:1 1 560px;min-width:0;display:flex;justify-content:center}
-canvas{display:block;border-radius:6px}#cv{touch-action:none}
+canvas{display:block;border-radius:6px}
+/* touch-action:none stops the page scrolling when you swipe on the board to move */
+#cv{touch-action:none}
+/* The side panel: stats, guess box, buttons, log, map and the collapsible More section. */
 #side{width:310px;background:var(--panel);border-radius:12px;padding:14px;flex:0 0 310px;max-width:100%}
 #side h2{margin:0 0 2px;font-size:18px}
+/* One stat line: label on the left, value on the right. */
 .row{display:flex;justify-content:space-between;gap:8px;margin:3px 0;color:var(--dim);font-size:14px}.row b{color:var(--ink);text-align:right}
+/* Rounded info boxes: the guess box, reveal button, shortest-length note and result summary. */
 .box{margin:10px 0;padding:10px;border-radius:8px;background:#262240;font-size:14px}
 .box.ok{background:#102a1f;border:1px solid #1f5a3f;color:var(--ok)}
 .box input{width:5em;font:inherit;padding:5px 7px;border-radius:6px;border:1px solid #5b4f86;background:#14121f;color:var(--ink)}
+/* Buttons: min-height 36px keeps them easy to hit; the focus rule below gives keyboard users a bright outline. */
 button{font:inherit;color:var(--ink);background:#2e2a47;border:0;border-radius:8px;padding:8px 12px;cursor:pointer;min-height:36px}
 button:hover{background:#3b3660}button:disabled{opacity:.45;cursor:default}
 button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible,canvas:focus-visible{outline:3px solid #ffe14a;outline-offset:2px}
+/* The row of control buttons wraps onto several lines when it runs out of room. */
 #btns{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
 #next{background:var(--acc);font-weight:700}
 #note{font-size:12.5px;color:var(--dim);margin:0 0 6px}
 #map{display:block;margin:10px auto 0;background:#17142a;border-radius:8px}
 #msg{min-height:22px;margin-top:6px;color:var(--acc);font-weight:700}
+/* The on-screen arrow pad: hidden by default, shown on touch screens and narrow windows (media query below). */
 #pad{display:none;grid-template-columns:repeat(3,64px);gap:6px;margin-top:10px;justify-content:center}
 #pad button{height:52px;min-width:44px;font-size:20px}
 @media (hover:none),(pointer:coarse),(max-width:700px){#pad{display:grid}}
+/* The move log and its direction tally. */
 .log{margin-top:8px;color:var(--dim);font-size:13px}
 .log header{display:flex;justify-content:space-between;align-items:center}
 .log button{min-height:28px;padding:2px 8px;font-size:12.5px}
 #log{font:13px/1.5 ui-monospace,monospace;color:var(--ink);max-height:64px;overflow:auto;word-break:break-word}
 #tally{font-size:12.5px;color:var(--dim)}
+/* The collapsible "More" section with the table, plot and about note. */
 details{margin-top:10px;font-size:14px}summary{cursor:pointer;color:var(--dim)}
 #seq{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;color:var(--ink)}
 #seq th,#seq td{text-align:right;padding:1px 4px}#seq th{color:var(--dim);font-weight:400}
@@ -43,16 +64,33 @@ details{margin-top:10px;font-size:14px}summary{cursor:pointer;color:var(--dim)}
 #sheet{display:inline-block;margin-top:8px;color:var(--dim)}
 .about{font-size:13px;color:var(--dim);margin:8px 0 0}.about code{color:#b7f5d6}
 #keys{color:var(--dim);font-size:13px;margin-top:8px}
+/* Screen-reader-only text: moved off screen (not display:none, which would hide it from screen readers too). */
 .sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .axes-on{background:#5b4f86}
+/* If the operating system asks for less motion, turn off CSS transitions and smooth scrolling. */
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style></head><body>
 <h1>Heart<span>Grid</span></h1>
+<!-- One-line summary under the title -->
 <div id="sub">Collect every heart, push the emeralds, open the door – then step through to the next room.</div>
+<!-- A short "what is this" with links to the code.  Native <details>: open by default, collapsible, keyboard-friendly. -->
+<details id="intro" open>
+  <summary>What is this?</summary>
+  <p>HeartGrid is a puzzle game on a coordinate grid. Collect every heart, push emerald blocks (into water, to bridge it),
+  dodge the ghosts and leave through the door. Twelve rooms, each needing more moves than the last.
+  For every room, the fewest possible moves has been worked out and checked by computer, so you can guess it, try to match it,
+  and see how close you got.</p>
+  <p><a href="https://github.com/keithadler/heartgrid" target="_blank" rel="noopener">Source code on GitHub</a> ·
+  <a href="https://github.com/keithadler/heartgrid/tree/main/HeartGrid" target="_blank" rel="noopener">the Lean 4 proofs</a> ·
+  <a href="worksheet.html" target="_blank" rel="noopener">printable grids</a> · MIT licence</p>
+</details>
+<!-- Left: the game board (a canvas drawn by render.js).  Right: the side panel. -->
 <div id="wrap">
   <div id="board"><canvas id="cv" tabindex="0" role="img" aria-label="Game board"></canvas></div>
   <div id="side">
+    <!-- Room name, set by game.js -->
     <h2 id="title"></h2>
+    <!-- Live stats.  Every value here is filled in by refresh() in game.js. -->
     <div class="row"><span>Moves</span><b id="moves">0</b></div>
     <div class="row"><span>Hearts left</span><b id="hearts">0</b></div>
     <div class="row"><span>Best</span><b id="best">–</b></div>
@@ -61,15 +99,21 @@ details{margin-top:10px;font-size:14px}summary{cursor:pointer;color:var(--dim)}
     <div class="row"><span>Pointer is on cell</span><b id="ptr">–</b></div>
     <div class="row"><span id="ratioLabel">Moves : shortest</span><b id="ratio">–</b></div>
 
+    <!-- Optional guess before playing.  Hidden once you start or when the shortest length is already known. -->
     <div class="box" id="guess">
       <label for="guessIn">How many moves will it take?</label><br>
       <input id="guessIn" type="number" min="0" inputmode="numeric"> <button id="lock">Lock in</button>
     </div>
+    <!-- Press to see the shortest possible length without finishing the room. -->
     <div class="box" id="reveal"><button id="revealBtn">Reveal the shortest possible</button></div>
+    <!-- Shown once the shortest length is known: the length and the straight-line distance bound. -->
     <div class="box ok" id="proof" hidden></div>
+    <!-- After clearing a room: your guess, the bound, your moves and the shortest, side by side. -->
     <div class="box" id="result" hidden></div>
 
+    <!-- Status line (role=status lets screen readers pick up changes politely). -->
     <div id="msg" role="status"></div>
+    <!-- Controls.  Keys: Space = wait, Z = undo, R = restart, G = grid.  Pause / Step appear only during a replay. -->
     <div id="btns">
       <button id="wait">Wait (Space)</button><button id="undo">Undo (Z)</button><button id="reset">Restart (R)</button>
       <button id="axes" aria-pressed="false">Grid (G)</button>
@@ -77,9 +121,13 @@ details{margin-top:10px;font-size:14px}summary{cursor:pointer;color:var(--dim)}
       <button id="next" hidden>Next room ▶</button>
     </div>
     <p id="note"></p>
+    <!-- Touch pad: undo, up, wait / left, down, right (six buttons in a 3-column grid). -->
     <div id="pad"><button data-act="undo" aria-label="Undo">↶</button><button data-d="U" aria-label="Up">▲</button><button data-d="S" aria-label="Wait">⏸</button><button data-d="L" aria-label="Left">◀</button><button data-d="D" aria-label="Down">▼</button><button data-d="R" aria-label="Right">▶</button></div>
+    <!-- Move log: arrows or visited cells, with a tally of each direction below. -->
     <div class="log"><header><span>Move log</span><button id="logMode">Show as points</button></header><div id="log"></div><div id="tally"></div></div>
+    <!-- The map of rooms (minimap.js): click a room you have reached to jump to it. -->
     <canvas id="map" width="268" height="150" aria-label="Map of rooms"></canvas>
+    <!-- Extra material, folded away so the main panel stays short. -->
     <details>
       <summary>More</summary>
       <table id="seq"><thead><tr><th>Room</th><th>Shortest</th><th>+ vs prev</th><th>Yours</th></tr></thead><tbody></tbody></table>
@@ -93,6 +141,9 @@ details{margin-top:10px;font-size:14px}summary{cursor:pointer;color:var(--dim)}
     <div id="keys">Arrows / WASD move · Space wait · Z undo · R restart · G grid<br>Cyan round ghosts patrol; purple horned ghosts chase along a clear row or column.</div>
   </div>
 </div>
+<footer style="margin:14px 0;font-size:13px;color:var(--dim)"><a href="https://github.com/keithadler/heartgrid" target="_blank" rel="noopener">github.com/keithadler/heartgrid</a> · MIT licence</footer>
+<!-- Hidden live region: game.js writes spoken updates here (hearts collected, "Caught!", and so on). -->
 <div class="sr" id="sr" aria-live="polite"></div>
+<!-- Order matters: each script uses the ones before it. game.js starts the game once it runs. -->
 <script src="levels.js"></script><script src="engine.js"></script><script src="render.js"></script><script src="minimap.js"></script><script src="game.js"></script>
 </body></html>
