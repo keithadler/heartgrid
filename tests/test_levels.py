@@ -16,7 +16,26 @@ def read(*parts):
 LEVELS = json.loads(read('levels.json'))
 
 
+def distance_bound(rows):
+    """Shortest tour start -> every heart (best order) -> door, in whole steps along rows and columns."""
+    from itertools import permutations
+    pos = {ch: [] for ch in 'PHE'}
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            if ch in pos: pos[ch].append((r, c))
+    d = lambda a, b: abs(a[0] - b[0]) + abs(a[1] - b[1])
+    best = 10 ** 9
+    for order in permutations(pos['H']):
+        stops = [pos['P'][0], *order, pos['E'][0]]
+        best = min(best, sum(d(a, b) for a, b in zip(stops, stops[1:])))
+    return best
+
+
 class CurriculumTests(unittest.TestCase):
+    def test_distance_bound_never_exceeds_the_minimum(self):
+        for lv in LEVELS:
+            self.assertLessEqual(distance_bound(lv['rows']), lv['opt'], f"room {lv['n']}")
+
     def test_twelve_rooms(self):
         self.assertEqual([lv['n'] for lv in LEVELS], list(range(1, 13)))
 

@@ -98,6 +98,7 @@
     g.fillStyle = COLOR.blockLight; g.fillRect(x + 3, y + 3, TILE - 6, 7); g.fillRect(x + 3, y + 3, 7, TILE - 6);
     g.fillStyle = COLOR.blockDark; g.fillRect(x + TILE - 10, y + 10, 7, TILE - 13); g.fillRect(x + 10, y + TILE - 10, TILE - 13, 7);
     g.fillStyle = COLOR.blockCore; g.fillRect(x + 17, y + 17, 14, 14);
+    g.strokeStyle = '#e8fff4'; g.lineWidth = 2; g.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);   // outline: not colour alone
   }
 
   /** A ghost: cyan if it only patrols, purple (with angry brows) if it hunts. `!` when it sees you. */
@@ -113,7 +114,10 @@
     g.fillStyle = COLOR.enemyPupil;
     const lx = DC[e.d] * 2, ly = DR[e.d] * 2;
     g.beginPath(); g.arc(cx - 6 + lx, cy - 3 + ly, 2.5, 0, 7); g.arc(cx + 6 + lx, cy - 3 + ly, 2.5, 0, 7); g.fill();
-    if (e.hunter) {
+    if (e.hunter) {                         // horns: a shape cue, so hunters differ from patrollers without colour
+      g.fillStyle = COLOR.hunter;
+      g.beginPath(); g.moveTo(cx - 14, cy - 12); g.lineTo(cx - 10, cy - 24); g.lineTo(cx - 4, cy - 15);
+      g.moveTo(cx + 14, cy - 12); g.lineTo(cx + 10, cy - 24); g.lineTo(cx + 4, cy - 15); g.fill();
       g.strokeStyle = COLOR.enemyPupil; g.lineWidth = 2; g.beginPath();
       g.moveTo(cx - 12, cy - 11); g.lineTo(cx - 3, cy - 8); g.moveTo(cx + 12, cy - 11); g.lineTo(cx + 3, cy - 8); g.stroke();
     }
@@ -194,28 +198,38 @@
     }
     drawHero(g, view, pr, pc);
     drawEffects(g, view, now);
-    if (view.axes) drawAxes(g, L, view.hover);
+    if (view.axes) drawAxes(g, L, view.hover, view.axes);
     if (view.banner) drawBanner(g, W, H, view.banner);
   }
 
   /**
-   * Optional coordinate overlay: thin grid lines, x along the bottom edge and y up the left edge,
-   * with the origin (0, 0) in the bottom-left cell.  `hover` = [r, c] highlights one cell.
+   * Optional coordinate overlay, origin (0, 0) at the bottom-left, x to the right, y upward.
+   * mode 1: label every CELL by its (x, y); mode 2: label the grid LINES, so a point sits where two lines cross.
+   * `hover` = [r, c] highlights one cell.
    */
-  function drawAxes(g, L, hover) {
+  function drawAxes(g, L, hover, mode) {
+    const W = L.w * TILE, H = L.h * TILE;
     g.save();
-    g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1;
+    g.strokeStyle = mode === 2 ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.12)'; g.lineWidth = 1;
     g.beginPath();
-    for (let c = 0; c <= L.w; c++) { g.moveTo(c * TILE + .5, 0); g.lineTo(c * TILE + .5, L.h * TILE); }
-    for (let r = 0; r <= L.h; r++) { g.moveTo(0, r * TILE + .5); g.lineTo(L.w * TILE, r * TILE + .5); }
+    for (let c = 0; c <= L.w; c++) { g.moveTo(c * TILE + .5, 0); g.lineTo(c * TILE + .5, H); }
+    for (let r = 0; r <= L.h; r++) { g.moveTo(0, r * TILE + .5); g.lineTo(W, r * TILE + .5); }
     g.stroke();
-    if (hover) {
-      g.fillStyle = 'rgba(255,225,74,.22)'; g.fillRect(hover[1] * TILE, hover[0] * TILE, TILE, TILE);
+    if (hover) { g.fillStyle = 'rgba(255,225,74,.22)'; g.fillRect(hover[1] * TILE, hover[0] * TILE, TILE, TILE); }
+    g.font = 'bold 13px ui-rounded, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const tag = (txt, x, y) => {
+      g.fillStyle = 'rgba(20,18,31,.75)'; g.fillRect(x - 9, y - 8, 18, 16);
+      g.fillStyle = '#ffe14a'; g.fillText(txt, x, y);
+    };
+    if (mode === 2) {
+      for (let c = 0; c <= L.w; c++) tag(String(c), Math.min(W - 9, Math.max(9, c * TILE)), H - 9);
+      for (let y = 0; y <= L.h; y++) tag(String(y), 10, Math.min(H - 9, Math.max(8, H - y * TILE)));
+      g.fillStyle = '#ffe14a';
+      for (let c = 0; c <= L.w; c++) for (let r = 0; r <= L.h; r++) g.fillRect(c * TILE - 1, r * TILE - 1, 3, 3);
+    } else {
+      for (let c = 0; c < L.w; c++) tag(String(c), c * TILE + TILE / 2, H - 9);
+      for (let r = 0; r < L.h; r++) tag(String(L.h - 1 - r), 10, r * TILE + TILE / 2);
     }
-    g.font = 'bold 12px ui-rounded, system-ui, sans-serif'; g.fillStyle = '#ffe14a';
-    g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (let c = 0; c < L.w; c++) g.fillText(String(c), c * TILE + TILE / 2, L.h * TILE - 9);
-    for (let r = 0; r < L.h; r++) g.fillText(String(L.h - 1 - r), 10, r * TILE + TILE / 2);
     g.restore();
   }
 

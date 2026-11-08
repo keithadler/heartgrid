@@ -11,18 +11,33 @@ canvas{max-width:100%;border:1px solid #999}
 .q{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 16px;margin-top:8px}
 .q span{border-bottom:1px solid #111;min-height:22px;display:block}
 .q label{font-size:12px;color:#555}
-button{font:inherit;padding:6px 12px;margin-bottom:12px}
+button{font:inherit;padding:6px 12px;margin:0 6px 12px 0}
+.key{display:none;font-size:13px;color:#222;background:#f1f1f1;padding:6px 8px;margin-top:8px}
+body.showkey .key{display:block}
+.blank{margin:0 0 28px}
 @media print{button,.sub a{display:none}body{margin:0}}
 </style></head><body>
 <h1>HeartGrid – grids with coordinates</h1>
-<div class="sub">Origin (0, 0) is the bottom-left corner; x grows to the right, y grows upward.
+<div class="sub">Each square below is a cell named by its (x, y). Origin (0, 0) is the bottom-left corner; x grows to the right, y grows upward.
 ♥ heart · ■ emerald block · ≈ water · ▲ hero · ◆ patrolling ghost · ◇ hunting ghost · ▯ door.</div>
-<button onclick="print()">Print</button>
+<button onclick="print()">Print</button><button onclick="document.body.classList.toggle('showkey')">Show / hide answer key</button>
+<section class="blank"><h2>Blank grid: plot your own points</h2><canvas id="blank"></canvas>
+<div class="sub">Plot and label A(2, 3), B(7, 1), C(10, 6). Then join them and find each side's length by counting steps along rows and columns.</div></section>
 <div id="out"></div>
 <script src="levels.js"></script><script src="engine.js"></script>
 <script>
 const CELL = 30, out = document.getElementById('out');
-const sym = { '#': '#6b5f99', '.': '#fff', '~': '#8cc4ff' };
+(function blank() {                          // empty grid with axes, lines labelled so a point sits where two lines cross
+  const w = 11, h = 9, m = 24, cv = document.getElementById('blank'); cv.width = w * CELL + 2 * m; cv.height = h * CELL + 2 * m;
+  const g = cv.getContext('2d'); g.font = '12px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.strokeStyle = '#bbb'; g.beginPath();
+  for (let c = 0; c <= w; c++) { g.moveTo(m + c * CELL + .5, m); g.lineTo(m + c * CELL + .5, m + h * CELL); }
+  for (let r = 0; r <= h; r++) { g.moveTo(m, m + r * CELL + .5); g.lineTo(m + w * CELL, m + r * CELL + .5); }
+  g.stroke(); g.fillStyle = '#000';
+  for (let c = 0; c <= w; c++) g.fillText(c, m + c * CELL, m + h * CELL + 12);
+  for (let y = 0; y <= h; y++) g.fillText(y, 10, m + (h - y) * CELL);
+})();
+const sym = { '#': '#777', '.': '#fff', '~': '#d9e6f5' };
 LEVELS.forEach(lv => {
   const rows = lv.rows, h = rows.length, w = rows[0].length, m = 22;
   const sec = document.createElement('section');
@@ -46,6 +61,9 @@ LEVELS.forEach(lv => {
     <div><label>Hero starts at (x, y)</label><span></span></div>
     <div><label>Hearts (list each point)</label><span></span></div>
     <div><label>Fewest moves you found</label><span></span></div></div>`);
+  const pts = (ch, mark) => rows.flatMap((row, r) => [...row].map((x, c) => x === ch ? `(${c}, ${h - 1 - r})` : null)).filter(Boolean);
+  const start = pts('P'), hearts = pts('H'), door = pts('E');
+  sec.insertAdjacentHTML('beforeend', `<div class="key">Key – start ${start.join(', ')} · hearts ${hearts.join(', ')} · door ${door.join(', ') || 'in the arch wall'} · shortest solution ${lv.opt} moves</div>`);
   out.appendChild(sec);
 });
 </script></body></html>
